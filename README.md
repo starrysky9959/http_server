@@ -1,3 +1,10 @@
+<!--
+ * @Author: starrysky9959 965105951@qq.com
+ * @Date: 2022-10-16 15:14:19
+ * @LastEditors: starrysky9959 965105951@qq.com
+ * @LastEditTime: 2022-11-03 13:22:50
+ * @Description: 
+-->
 # ucas_network_lab1
 
 ## 实验要求
@@ -5,6 +12,15 @@
 同时支持HTTP（80端口）和HTTPS（443端口）
 使用两个线程分别监听各自端口
 只需支持GET方法，解析请求报文，返回相应应答及内容
+
+## build
+``` bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
 
 ## 参考
 [C++后台开发有哪些练基础的开源项目？ - 知乎](https://www.zhihu.com/question/39169728)

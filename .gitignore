@@ -3,6 +3,7 @@ build/
 
 # project
 log/
+!src/log/
 
 # vscode
 .vscode/

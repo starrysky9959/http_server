@@ -1,3 +1,10 @@
+/*
+ * @Author: starrysky9959 965105951@qq.com
+ * @Date: 2022-10-19 19:41:36
+ * @LastEditors: starrysky9959 965105951@qq.com
+ * @LastEditTime: 2022-11-05 01:02:10
+ * @Description:  
+ */
 #pragma once
 
 #include <cstddef>
@@ -16,13 +23,17 @@ class HttpResponse {
 public:
     HttpResponse();
     ~HttpResponse();
-    void Init(const std::string& srcDir, std::string& path, bool isKeepAlive, int code);
+    void init(const std::string &srcDir, std::string &path, std::unordered_map<std::string, std::string> &header, bool isKeepAlive, int code);
 
-    void makeResponse(Buffer &buffer);
+    void makeResponse(Buffer &buffer, bool needRedirect);
 
-    char* getFile();
+    char *getFile();
     size_t getFileLength();
     void unmapFile();
+
+    // handle range
+    int begin_;
+    int end_;
 
 private:
     void addStateLine(Buffer &buffer);
@@ -34,6 +45,7 @@ private:
     void errorContent(Buffer &buffer, std::string msg);
 
     std::string path_;
+    std::unordered_map<std::string, std::string> header_;
     std::string srcDir_;
     int code_;
     bool isKeepAlive_;
@@ -44,5 +56,5 @@ private:
 
     static const std::unordered_map<std::string, std::string> SUFFIX_TYPE;
     static const std::unordered_map<int, std::string> CODE_STATUS;
-    static const std::unordered_map<int, std::string> ERROR_PAGES;
+    // static const std::unordered_map<int, std::string> ERROR_PAGES;
 };

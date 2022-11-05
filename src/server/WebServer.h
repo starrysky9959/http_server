@@ -1,21 +1,32 @@
+/*
+ * @Author: starrysky9959 965105951@qq.com
+ * @Date: 2022-10-27 23:53:20
+ * @LastEditors: starrysky9959 965105951@qq.com
+ * @LastEditTime: 2022-11-04 14:54:15
+ * @Description:  
+ */
 #pragma once
 
 #include "Epoller.h"
 #include <cstdint>
 #include <netinet/in.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #include "../http/HttpConnection.h"
 #include "../pool/ThreadPool.h"
 #include "../log/Log.h"
 
 class WebServer {
 public:
-    WebServer(int port, int trigMode, int timeout,bool optLinger,  int threadNum=2,bool openLog=true, int logLevel=0, int logQueSize=1024);
+    WebServer(int port,  bool openSSL,int trigMode, int timeout, bool optLinger, int threadNum = 2, bool openLog = true, int logLevel = 0, int logQueSize = 1024);
     ~WebServer();
     void start();
 
 private:
     bool initSocket();
     void initEventMode(int trigMode);
+    bool initSSL(const char* cert="./keys/cert.pem", const char* key="./keys/privkey.pem", const char* passwd="123456");
     void addClient(int fd, sockaddr_in addr);
 
     void dealListen();
@@ -28,10 +39,11 @@ private:
     void onWrite(HttpConnection *client);
     void onProcess(HttpConnection *client);
 
-void sendError(int fd, const char *info);
+    void sendError(int fd, const char *info);
 
     static int setFdNonBlock(int fd);
 
+    bool openSSL_;
     int port_;
     bool openLinger_;
     int trigMode_;
@@ -42,6 +54,9 @@ void sendError(int fd, const char *info);
     bool isClosed_;
     int listenFd_; // 监听socket file descriptor
     char *srcDir_;
+
+    SSL_CTX * ctx_ ; 
+    SSL * ssl_;
 
     uint32_t listenEvent_;
     uint32_t connectionEvent_;

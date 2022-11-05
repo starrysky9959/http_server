@@ -34,9 +34,10 @@ public:
     // PARSE_STATE getState;
     std::string getMethod() const;
     std::string getPath() const;
-    std::string& getPath() ;
+    std::string &getPath();
     std::string getVersion() const;
     bool isKeepAlive() const;
+    std::unordered_map<std::string, std::string> &getHeader();
 
 private:
     void parsePath();
@@ -50,6 +51,6 @@ private:
     std::string version_;
     std::unordered_map<std::string, std::string> header_;
     std::string body_;
-  
+
     static const std::unordered_set<std::string> DEFAULT_HTML;
 };

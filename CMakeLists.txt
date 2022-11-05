@@ -20,7 +20,9 @@ target_include_directories(
     src/)
 target_link_libraries(
     ${PROJECT_NAME} 
-    -pthread)
+    -pthread
+    -lssl -lcrypto
+    )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

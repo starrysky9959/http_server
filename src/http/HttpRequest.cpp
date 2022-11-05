@@ -43,6 +43,10 @@ std::string HttpRequest::getVersion() const {
     return version_;
 }
 
+std::unordered_map<std::string, std::string> & HttpRequest:: getHeader(){
+    return header_;
+}
+
 bool HttpRequest::isKeepAlive() const {
     auto result = header_.find("Connection");
     if (result != header_.end()) {
@@ -59,6 +63,8 @@ bool HttpRequest::parse(Buffer &buffer) {
         // return buffer.beginWriteConst() if does not find the END_FLAG
         auto lineEnd = std::search(buffer.peek(), buffer.beginWriteConst(), util::ENDLINE_FLAG.begin(), util::ENDLINE_FLAG.end());
         std::string line(buffer.retrieveUntilToString(lineEnd));
+        std::cout << "line\n"
+                  << line << std::endl;
         switch (state_) {
         case PARSE_STATE::REQUEST_LINE:
             if (!parseRequestLine(line)) {
@@ -89,7 +95,7 @@ void HttpRequest::parsePath() {
     if (path_ == "/") {
         path_ = "/index.html";
     }
-    std::cout<<"path: "<<path_<<std::endl;
+    std::cout << "path: " << path_ << std::endl;
 }
 
 bool HttpRequest::parseRequestLine(const std::string &line) {

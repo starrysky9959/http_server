@@ -1,6 +1,8 @@
 #include "HttpResponse.h"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <string>
 #include "../util/Util.h"
 
 const std::unordered_map<std::string, std::string> HttpResponse::SUFFIX_TYPE = {
@@ -10,7 +12,7 @@ const std::unordered_map<std::string, std::string> HttpResponse::SUFFIX_TYPE = {
     {".txt", "text/plain"},
     {".rtf", "application/rtf"},
     {".pdf", "application/pdf"},
-    {".word", "application/nsword"},
+    {".word", "application/msword"},
     {".png", "image/png"},
     {".gif", "image/gif"},
     {".jpg", "image/jpeg"},
@@ -27,15 +29,11 @@ const std::unordered_map<std::string, std::string> HttpResponse::SUFFIX_TYPE = {
 
 const std::unordered_map<int, std::string> HttpResponse::CODE_STATUS = {
     {200, "OK"},
+    {206, "Partial Content"},
+    {301, "Moved Permanently"},
     {400, "Bad Request"},
     {403, "Forbidden"},
     {404, "Not Found"},
-};
-
-const std::unordered_map<int, std::string> HttpResponse::ERROR_PAGES = {
-    {400, "/400.html"},
-    {403, "/403.html"},
-    {404, "/404.html"},
 };
 
 HttpResponse::HttpResponse() :
@@ -53,32 +51,50 @@ size_t HttpResponse::getFileLength() {
     return mmFileStat_.st_size;
 }
 
-void HttpResponse::Init(const std::string &srcDir, std::string &path, bool isKeepAlive, int code) {
+void HttpResponse::init(const std::string &srcDir, std::string &path, std::unordered_map<std::string, std::string> &header, bool isKeepAlive, int code) {
     assert(srcDir != "");
     if (mmFile_) unmapFile();
     this->srcDir_ = srcDir;
+    this->header_ = std::move(header);
     this->path_ = path;
     this->code_ = code;
     this->isKeepAlive_ = isKeepAlive;
     mmFile_ = nullptr;
     mmFileStat_ = {0};
-    
+    begin_ = -1;
+    end_ = -1;
 }
 
-void HttpResponse::makeResponse(Buffer &buffer) {
+void HttpResponse::makeResponse(Buffer &buffer, bool needRedirect) {
+    // path_ = "/index.html";
     // check whether the file exists
     // function stat() save file infomation in the specified stat according to the file name
     if (stat((srcDir_ + path_).data(), &mmFileStat_) < 0 || S_ISDIR(mmFileStat_.st_mode)) {
         code_ = 404;
     } // file authority
-    else if (!(mmFileStat_.st_mode & S_IROTH)) {
+    else if (needRedirect) {
+        code_ = 301;
+    } else if (!(mmFileStat_.st_mode & S_IROTH)) {
         code_ = 403;
-    } else if (code_==-1){ // OK
+    } else if (header_.find("Range") != header_.end()) {
+        code_ = 206;
+        std::string sub = header_["Range"].substr(6);
+        auto divide = sub.find_first_of('-');
+        begin_ = std::stoi(sub.substr(0, divide));
+        if (divide < sub.size() - 1) {
+            end_ = std::stoi(sub.substr(divide + 1));
+        }
+        std::cout << "begin:" << begin_ << std::endl;
+        std::cout << "end:" << end_ << std::endl;
+    } else if (code_ == -1) { // OK
         code_ = 200;
     }
-
+    std::cout << code_ << std::endl;
     addStateLine(buffer);
     addHeader(buffer);
+    if (needRedirect) {
+        buffer.append("Location: https://127.0.0.1").append(path_).append(util::ENDLINE_FLAG);
+    }
     addContent(buffer);
 }
 
@@ -126,13 +142,31 @@ void HttpResponse::addContent(Buffer &buffer) {
     // MAP_PRIVATE 建立一个写入时拷贝的私有映射
     std::cout << "file path " << (srcDir_ + path_) << std::endl;
     auto mmRet = (int *)mmap(0, mmFileStat_.st_size, PROT_READ, MAP_PRIVATE, srcFd, 0);
+    std::cout << mmRet << std::endl;
+    std::cout << *mmRet << std::endl;
+    std::cout << "here" << std::endl;
+
     if (*mmRet == -1) {
+        std::cout << "File not found!" << std::endl;
         errorContent(buffer, "File not found!");
         return;
     }
+    std::cout << "File found!" << std::endl;
     mmFile_ = (char *)mmRet;
+    std::cout << "close fd" << std::endl;
     close(srcFd);
-    buffer.append("Content-length: " + std::to_string(mmFileStat_.st_size) + util::ENDLINE_FLAG + util::ENDLINE_FLAG);
+    std::cout << "append" << std::endl;
+
+    auto length = mmFileStat_.st_size;
+
+    std::cout << "begin:" << begin_ << std::endl;
+        std::cout << "end:" << end_ << std::endl;
+    if (begin_ != -1 && end_ != -1) {
+        length = end_ - begin_ + 1;
+    } else if (begin_ != -1 && end_ == -1)  {
+        length -= begin_;
+    }
+    buffer.append("Content-length: " + std::to_string(length) + util::ENDLINE_FLAG + util::ENDLINE_FLAG);
 }
 
 void HttpResponse::errorContent(Buffer &buffer, std::string msg) {

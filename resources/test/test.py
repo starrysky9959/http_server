@@ -2,7 +2,7 @@
 Author: starrysky9959 965105951@qq.com
 Date: 2022-11-02 17:03:24
 LastEditors: starrysky9959 965105951@qq.com
-LastEditTime: 2022-11-04 16:09:38
+LastEditTime: 2022-11-05 18:58:16
 Description:  
 '''
 import requests
@@ -14,10 +14,10 @@ test_dir = dirname(realpath(__file__))
 ip = "127.0.0.1" # "10.0.0.1"
 
 # http 301
-r = requests.get('http://{0}/index.html'.format(ip), allow_redirects=False)
-print(r.status_code)
-print(r.headers['Location'])
-assert(r.status_code == 301 and r.headers['Location'] == 'https://{0}/index.html'.format(ip))
+# r = requests.get('http://{0}/index.html'.format(ip), allow_redirects=False)
+# print(r.status_code)
+# print(r.headers['Location'])
+# assert(r.status_code == 301 and r.headers['Location'] == 'https://{0}/index.html'.format(ip))
 
 # https 200 OK
 r = requests.get('https://{0}/index.html'.format(ip), verify=False)

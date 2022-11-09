@@ -194,7 +194,8 @@ bool HttpConnection::process() {
     }
 
     std::cout << "make response " << std::endl;
-    response_.makeResponse(writeBuffer_, !openSSL_);
+    // response_.makeResponse(writeBuffer_, !openSSL_);
+    response_.makeResponse(writeBuffer_, false);
 
     // response header
     iov_[0].iov_base = const_cast<char *>(writeBuffer_.peek());

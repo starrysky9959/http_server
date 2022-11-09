@@ -2,7 +2,7 @@
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-27 23:53:28
  * @LastEditors: starrysky9959 965105951@qq.com
- * @LastEditTime: 2022-11-05 14:18:41
+ * @LastEditTime: 2022-11-05 16:22:07
  * @Description:  
  */
 
@@ -81,7 +81,10 @@ bool WebServer::initSSL(const char *cert, const char *key, const char *passwd) {
     ERR_load_BIO_strings();
 
     // 我们使用SSL V3,V2
-    ctx_ = SSL_CTX_new(SSLv23_method());
+    const SSL_METHOD *method = TLS_server_method();
+    // SSL_CTX *ctx = SSL_CTX_new(method);
+
+    ctx_ = SSL_CTX_new(method); //SSL_CTX_new(SSLv23_method());
     assert(ctx_ != nullptr);
 
     // 要求校验对方证书，这里建议使用SSL_VERIFY_FAIL_IF_NO_PEER_CERT，详见https://blog.csdn.net/u013919153/article/details/78616737
@@ -92,8 +95,8 @@ bool WebServer::initSSL(const char *cert, const char *key, const char *passwd) {
     assert(SSL_CTX_load_verify_locations(ctx_, cert, NULL));
 
     // 加载自己的证书
-    assert(SSL_CTX_use_certificate_chain_file(ctx_, cert) > 0);
-
+    // assert(SSL_CTX_use_certificate_chain_file(ctx_, cert) > 0);
+    assert(SSL_CTX_use_certificate_file(ctx_, cert, SSL_FILETYPE_PEM) > 0);
     // 加载自己的私钥
     SSL_CTX_set_default_passwd_cb_userdata(ctx_, (void *)passwd);
     assert(SSL_CTX_use_PrivateKey_file(ctx_, key, SSL_FILETYPE_PEM) > 0);
@@ -190,7 +193,6 @@ int WebServer::setFdNonBlock(int fd) {
 }
 
 void WebServer::initEventMode(int trigMode) {
-    // ??? dont't understand
     // https://mp.weixin.qq.com/s/BfnNl-3jc_x5WPrWEJGdzQ
     listenEvent_ = EPOLLRDHUP;
     connectionEvent_ = EPOLLONESHOT | EPOLLRDHUP;
@@ -275,7 +277,7 @@ void WebServer::dealListen() {
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
     do {
-        // receive connection request and build a connectioned file descriptor
+        // receive connection request and build a connection file descriptor
         int fd = accept(listenFd_, (struct sockaddr *)(&addr), &len);
         std::cout << "accept: " << fd << std::endl;
 
@@ -296,7 +298,7 @@ void WebServer::dealListen() {
                 std::cout << "SSL new wrong" << std::endl;
                 return;
             }
-            SSL_set_accept_state(ssl_);
+            // SSL_set_accept_state(ssl_);
             // bind stream socket in read/write mode
             SSL_set_fd(ssl_, fd);
 

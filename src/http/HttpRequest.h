@@ -2,7 +2,7 @@
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-19 00:14:39
  * @LastEditors: starrysky9959 965105951@qq.com
- * @LastEditTime: 2022-11-02 18:50:56
+ * @LastEditTime: 2022-11-05 22:18:40
  * @Description: 
  */
 #pragma once
@@ -13,7 +13,7 @@
 #include "../buffer/Buffer.h"
 
 enum PARSE_STATE {
-    REQUEST_LINE,
+    REQUEST_LINE, 
     HEADER,
     // BLANK_LINE,
     BODY,

@@ -66,7 +66,6 @@ void HttpResponse::init(const std::string &srcDir, std::string &path, std::unord
 }
 
 void HttpResponse::makeResponse(Buffer &buffer, bool needRedirect) {
-    // path_ = "/index.html";
     // check whether the file exists
     // function stat() save file infomation in the specified stat according to the file name
     if (stat((srcDir_ + path_).data(), &mmFileStat_) < 0 || S_ISDIR(mmFileStat_.st_mode)) {

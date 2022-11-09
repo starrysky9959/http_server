@@ -2,7 +2,7 @@
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-16 15:14:19
  * @LastEditors: starrysky9959 starrysky9651@outlook.com
- * @LastEditTime: 2022-11-10 00:09:57
+ * @LastEditTime: 2022-11-10 00:12:56
  * @Description: 
 -->
 # HTTP/HTTPS Server
@@ -236,10 +236,20 @@ epoll_data_t data; /* User data variable */
 ### WebServer
 `WebServer`类表示最终完整的HTTP/HTTPS服务器（根据参数进行不同配置），由于代码较多，用流程图展示
 创建`WebServer`时，首先要完成socket和ssl的初始化，如下图所示
+
+<center>
+
 ![1](assets/test-init.png)
 
+</center>
+
 执行`WebServer.start()`启动服务器后，会按照以下流程运行
+
+<center>
+
 ![2](assets/test-start.png)
+
+</center>
 
 
 

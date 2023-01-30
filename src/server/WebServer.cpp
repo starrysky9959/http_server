@@ -1,8 +1,8 @@
 /*
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-27 23:53:28
- * @LastEditors: starrysky9959 965105951@qq.com
- * @LastEditTime: 2022-11-05 16:22:07
+ * @LastEditors: starrysky9959 starrysky9651@outlook.com
+ * @LastEditTime: 2023-01-30 22:12:16
  * @Description:  
  */
 
@@ -18,22 +18,28 @@
 #include <functional>
 #include <iostream>
 #include <netinet/in.h>
+#include <openssl/rsa.h>
 #include <ostream>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <glog/logging.h>
+#include <filesystem>
 
-WebServer::WebServer(int port, bool openSSL, int trigMode, int timeout, bool optLinger, int threadNum, bool openLog, int logLevel, int logQueSize) :
+WebServer::WebServer(int port, bool openSSL, int trigMode, int timeout, bool optLinger, int threadNum) :
     port_{port}, trigMode_{trigMode}, openSSL_{openSSL}, timeout_{timeout}, openLinger_(optLinger), isClosed_{false}, threadPool_{std::make_unique<ThreadPool>(threadNum)}, epoller_{std::make_unique<Epoller>()} {
-    // timer_(new HeapTimer()), threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
     // get current path
-    srcDir_ = getcwd(nullptr, 256);
-    assert(srcDir_);
-    strncat(srcDir_, "/resources", 16);
+
+    srcDir_ = std::filesystem::current_path(); //getcwd(nullptr, 256);
+    LOG(INFO) << "current path: " << srcDir_;
+    // assert(srcDir_);
+    srcDir_ += "/resources";
+    LOG(INFO) << "resources path: " << srcDir_;
+    // strncat(srcDir_, "/resources", 16);
 
     HttpConnection::srcDir_ = srcDir_;
     HttpConnection::userCount_ = 0;
-    std::cout << srcDir_ << std::endl;
+
     initEventMode(trigMode);
     if (!initSocket()) {
         isClosed_ = true;
@@ -41,38 +47,24 @@ WebServer::WebServer(int port, bool openSSL, int trigMode, int timeout, bool opt
 
     if (openSSL_) {
         assert(initSSL());
-        std::cout << "Enable OpenSSL" << std::endl;
-        LOG_INFO("Enable OpenSSL");
+        LOG(INFO) << "Enable OpenSSL";
     }
 
-    // std::cout << openLog << isClosed_ << std::endl;
-
-    if (openLog) {
-        Log::Instance()->init(logLevel, "./log", ".log", logQueSize);
-        if (isClosed_) {
-            LOG_ERROR("========== Server init error!==========");
-        } else {
-            LOG_INFO("========== Server init ==========");
-            LOG_INFO("Port:%d, OpenLinger: %s", port_, optLinger ? "true" : "false");
-            LOG_INFO("Listen Mode: %s, OpenConn Mode: %s",
-                     (listenEvent_ & EPOLLET ? "ET" : "LT"),
-                     (connectionEvent_ & EPOLLET ? "ET" : "LT"));
-            LOG_INFO("LogSys level: %d", logLevel);
-            LOG_INFO("srcDir: %s", HttpConnection::srcDir_);
-            LOG_INFO("ThreadPool num: %d", threadNum);
-        }
-    }
+    LOG(INFO) << "Start success";
 }
 
 WebServer::~WebServer() {
     close(listenFd_);
     isClosed_ = true;
-    free(srcDir_);
+    // free(srcDir_);
     if (openSSL_) {
         SSL_CTX_free(ctx_);
     }
 }
 
+/**
+ * @description: reference link: https://blog.csdn.net/qq_42370809/article/details/126352996
+ */
 bool WebServer::initSSL(const char *cert, const char *key, const char *passwd) {
     // init
     SSLeay_add_ssl_algorithms();
@@ -81,11 +73,8 @@ bool WebServer::initSSL(const char *cert, const char *key, const char *passwd) {
     ERR_load_BIO_strings();
 
     // 我们使用SSL V3,V2
-    const SSL_METHOD *method = TLS_server_method();
-    // SSL_CTX *ctx = SSL_CTX_new(method);
-
-    ctx_ = SSL_CTX_new(method); //SSL_CTX_new(SSLv23_method());
-    assert(ctx_ != nullptr);
+    ctx_ = SSL_CTX_new(SSLv23_method());
+    assert(ctx_ != NULL);
 
     // 要求校验对方证书，这里建议使用SSL_VERIFY_FAIL_IF_NO_PEER_CERT，详见https://blog.csdn.net/u013919153/article/details/78616737
     //对于服务器端来说如果使用的是SSL_VERIFY_PEER且服务器端没有考虑对方没交证书的情况，会出现只能访问一次，第二次访问就失败的情况。
@@ -95,8 +84,8 @@ bool WebServer::initSSL(const char *cert, const char *key, const char *passwd) {
     assert(SSL_CTX_load_verify_locations(ctx_, cert, NULL));
 
     // 加载自己的证书
-    // assert(SSL_CTX_use_certificate_chain_file(ctx_, cert) > 0);
-    assert(SSL_CTX_use_certificate_file(ctx_, cert, SSL_FILETYPE_PEM) > 0);
+    assert(SSL_CTX_use_certificate_chain_file(ctx_, cert) > 0);
+
     // 加载自己的私钥
     SSL_CTX_set_default_passwd_cb_userdata(ctx_, (void *)passwd);
     assert(SSL_CTX_use_PrivateKey_file(ctx_, key, SSL_FILETYPE_PEM) > 0);
@@ -122,8 +111,7 @@ bool WebServer::initSocket() {
     // create listen socket file descriptor
     listenFd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (listenFd_ < 0) {
-        LOG_ERROR("Create socket error!", port_);
-        std::cout << "Create socket error!" << std::endl;
+        LOG(INFO) << "Create socket error!" << port_;
         return false;
     }
 
@@ -137,17 +125,15 @@ bool WebServer::initSocket() {
     ret = setsockopt(listenFd_, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
     if (ret < 0) {
         close(listenFd_);
-        LOG_ERROR("Init linger error!", port_);
-        std::cout << "Init linger error!" << std::endl;
+        LOG(ERROR) << "Init linger error! port=" << port_;
         return false;
     }
 
     int optVal = 1;
     ret = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, (const void *)(&optVal), sizeof(optVal));
     if (ret < 0) {
-        LOG_ERROR("set socket setsockopt error !");
+        LOG(ERROR) << "set socket setsockopt error !";
         close(listenFd_);
-        std::cout << "set socket setsockopt error !" << std::endl;
         return false;
     }
 
@@ -158,32 +144,29 @@ bool WebServer::initSocket() {
     addr.sin_port = htons(port_);             // 将一个无符号短整型数值转换为网络字节序, 即大端模式
     ret = bind(listenFd_, (struct sockaddr *)(&addr), sizeof(addr));
     if (ret < 0) {
-        LOG_ERROR("Bind Port:%d error!", port_);
+        LOG(ERROR) << "Bind Port:" << port_ << " error!";
         close(listenFd_);
-        std::cout << "Bind Port error!" << std::endl;
         return false;
     }
 
     // listen this socket
     ret = listen(listenFd_, 6);
     if (ret < 0) {
-        LOG_ERROR("Listen port:%d error!", port_);
+        LOG(ERROR) << "Listen port:" << port_ << "error!";
         close(listenFd_);
-        std::cout << "Listen port: error!" << std::endl;
         return false;
     }
 
     // register new event
     ret = epoller_->addFd(listenFd_, listenEvent_ | EPOLLIN);
     if (ret == 0) {
-        LOG_ERROR("Add listen error!");
+        LOG(ERROR) << "Add listen error!";
         close(listenFd_);
-        std::cout << "Add listen error!" << std::endl;
         return false;
     }
 
     setFdNonBlock(listenFd_);
-    LOG_INFO("Server port:%d", port_);
+    LOG(INFO) << "Server port:" << port_;
     return true;
 }
 
@@ -220,54 +203,45 @@ void WebServer::initEventMode(int trigMode) {
 
 void WebServer::addClient(int fd, sockaddr_in addr) {
     assert(fd > 0);
-    std::cout << "add client" << std::endl;
 
     users_[fd].init(fd, addr, openSSL_, ssl_);
     epoller_->addFd(fd, connectionEvent_ | EPOLLIN);
     setFdNonBlock(fd);
-    LOG_INFO("Client[%d] in!", users_[fd].getFd());
+    LOG(INFO) << "Client[" << users_[fd].getFd() << "] in!";
 }
 
 void WebServer::start() {
-    int timeMs = -1; // epoll wait timeout == -1, it will block if there is no event happens
     if (!isClosed_) {
-        std::cout << "========== Server start ==========" << std::endl;
-        // LOG_INFO("========== Server start ==========");
+        LOG(INFO) << "========== Server start ==========";
     }
 
     while (!isClosed_) {
-        if (timeMs > 0) {
-        }
-
+        // epoll wait timeout == -1, it will block if there is no event happens
         int eventCnt = epoller_->wait(-1);
-        std::cout << "event: " << eventCnt << std::endl;
-        LOG_DEBUG("event cnt %d", eventCnt);
+
+        LOG(INFO) << "event cnt: " << eventCnt;
         for (int i = 0; i < eventCnt; ++i) {
-            std::cout << "have event" << std::endl;
+            LOG(INFO) << "have event now";
             // handle event according to it's type
             int fd = epoller_->getEventFd(i);
             uint32_t events = epoller_->getEvents(i);
             if (fd == listenFd_) {
+                LOG(INFO) << "Deal Listen";
                 dealListen();
-                LOG_DEBUG("dealListen");
             } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
-                std::cout << "close begin" << std::endl;
+                LOG(INFO) << "Close connection";
                 assert(users_.count(fd) > 0);
                 closeConnection(&users_[fd]);
-                std::cout << "close end" << std::endl;
             } else if (events & EPOLLIN) {
-                std::cout << "dealread begin" << std::endl;
+                LOG(INFO) << "Deal read";
                 assert(users_.count(fd) > 0);
                 dealRead(&users_[fd]);
-                std::cout << "dealread end" << std::endl;
             } else if (events & EPOLLOUT) {
-                std::cout << "dealwrite begin" << std::endl;
+                LOG(INFO) << "Deal write";
                 assert(users_.count(fd) > 0);
                 dealWrite(&users_[fd]);
-                std::cout << "dealwrite end" << std::endl;
             } else {
-                LOG_ERROR("Unexpected event");
-                std::cout << "Unexpected event" << std::endl;
+                LOG(ERROR) << "Unexpected event";
             }
         }
     }
@@ -279,14 +253,13 @@ void WebServer::dealListen() {
     do {
         // receive connection request and build a connection file descriptor
         int fd = accept(listenFd_, (struct sockaddr *)(&addr), &len);
-        std::cout << "accept: " << fd << std::endl;
+        LOG(INFO) << "accept: " << fd;
 
         if (fd < 0) {
             return;
         } else if (HttpConnection::userCount_ >= MAX_FD) {
-            LOG_WARN("Clients is full!");
+            LOG(INFO) << "Clients is full!";
             sendError(fd, "Server busy! Too much connections!");
-
             return;
         }
 
@@ -294,21 +267,18 @@ void WebServer::dealListen() {
             // create ssl socket
             ssl_ = SSL_new(ctx_);
             if (ssl_ == NULL) {
-                LOG_ERROR("SSL new wrong");
-                std::cout << "SSL new wrong" << std::endl;
+                LOG(ERROR) << "SSL new wrong";
                 return;
             }
-            // SSL_set_accept_state(ssl_);
+            SSL_set_accept_state(ssl_);
             // bind stream socket in read/write mode
             SSL_set_fd(ssl_, fd);
 
             // 完成SSL握手
             auto ret = SSL_accept(ssl_);
             if (ret != 1) {
-                LOG_ERROR("%s\n", SSL_state_string_long(ssl_));
-                std::cout << SSL_state_string_long(ssl_) << std::endl;
-                LOG_ERROR("ret = %d, ssl get error %d\n", ret, SSL_get_error(ssl_, ret));
-                std::cout << "ret = " << ret << " ssl get error " << SSL_get_error(ssl_, ret) << std::endl;
+                LOG(ERROR) << SSL_state_string_long(ssl_);
+                LOG(ERROR) << "ret = " << ret << " . ssl get error: " << SSL_get_error(ssl_, ret);
                 return;
             }
         }
@@ -338,14 +308,13 @@ void WebServer::sendError(int fd, const char *info) {
 void WebServer::closeConnection(HttpConnection *client) {
     assert(client);
     epoller_->delFd(client->getFd());
-    client->close();
 
     // 关闭
     if (openSSL_ && ssl_ != NULL) {
         SSL_shutdown(ssl_); // 关闭SSL套接字
         SSL_free(ssl_);     // 释放SSL套接字
-        //
     }
+    client->close();
 }
 void WebServer::extendTime(HttpConnection *client) {
     assert(client);
@@ -353,8 +322,6 @@ void WebServer::extendTime(HttpConnection *client) {
 
 void WebServer::onRead(HttpConnection *client) {
     assert(client);
-    LOG_DEBUG("begin on read");
-    std::cout << "begin on read" << std::endl;
 
     int readErrno = 0;
     auto ret = client->read(&readErrno);
@@ -363,7 +330,6 @@ void WebServer::onRead(HttpConnection *client) {
         return;
     }
 
-    std::cout << "end on read" << std::endl;
     onProcess(client);
 }
 

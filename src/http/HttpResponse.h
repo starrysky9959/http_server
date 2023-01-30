@@ -1,8 +1,8 @@
 /*
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-19 19:41:36
- * @LastEditors: starrysky9959 965105951@qq.com
- * @LastEditTime: 2022-11-05 01:02:10
+ * @LastEditors: starrysky9959 starrysky9651@outlook.com
+ * @LastEditTime: 2023-01-30 15:01:00
  * @Description:  
  */
 #pragma once
@@ -15,6 +15,7 @@
 #include <sys/mman.h> // mmap, munmap
 #include <unordered_map>
 #include "../buffer/Buffer.h"
+#include "HttpRequest.h"
 
 /*
  * HTTP响应也由四个部分组成, 分别是: 状态行, 消息报头, 空行和响应正文
@@ -23,9 +24,9 @@ class HttpResponse {
 public:
     HttpResponse();
     ~HttpResponse();
-    void init(const std::string &srcDir, std::string &path, std::unordered_map<std::string, std::string> &header, bool isKeepAlive, int code);
+    void init(const std::string &srcDir,HttpRequest &request,bool isKeepAlive, int code);
 
-    void makeResponse(Buffer &buffer, bool needRedirect);
+    void makeResponse(Buffer &buffer, bool needRedirect=false);
 
     char *getFile();
     size_t getFileLength();
@@ -39,16 +40,18 @@ private:
     void addStateLine(Buffer &buffer);
     void addHeader(Buffer &buffer);
     void addContent(Buffer &buffer);
+    void errorContent(Buffer &buffer, std::string msg);
+    void postContent(Buffer &buffer);
 
     std::string getFileType();
 
-    void errorContent(Buffer &buffer, std::string msg);
-
+    std::string srcDir_;
     std::string path_;
     std::unordered_map<std::string, std::string> header_;
-    std::string srcDir_;
-    int code_;
+    std::unordered_map<std::string, std::string> postParameter_;
     bool isKeepAlive_;
+    int code_;
+    int length_;
 
     // Linux文件的内存共享映射
     char *mmFile_;

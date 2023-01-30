@@ -1,8 +1,8 @@
 /*
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-27 23:53:20
- * @LastEditors: starrysky9959 965105951@qq.com
- * @LastEditTime: 2022-11-04 14:54:15
+ * @LastEditors: starrysky9959 starrysky9651@outlook.com
+ * @LastEditTime: 2023-01-30 15:35:32
  * @Description:  
  */
 #pragma once
@@ -15,11 +15,10 @@
 
 #include "../http/HttpConnection.h"
 #include "../pool/ThreadPool.h"
-#include "../log/Log.h"
 
 class WebServer {
 public:
-    WebServer(int port,  bool openSSL,int trigMode, int timeout, bool optLinger, int threadNum = 2, bool openLog = true, int logLevel = 0, int logQueSize = 1024);
+    WebServer(int port,  bool openSSL,int trigMode, int timeout, bool optLinger, int threadNum = 2);
     ~WebServer();
     void start();
 
@@ -53,7 +52,7 @@ private:
 
     bool isClosed_;
     int listenFd_; // 监听socket file descriptor
-    char *srcDir_;
+    std::string srcDir_;
 
     SSL_CTX * ctx_ ; 
     SSL * ssl_;

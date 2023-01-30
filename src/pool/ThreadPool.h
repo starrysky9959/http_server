@@ -27,12 +27,10 @@ public:
                 while (true) {
                     if (!pool_->taskQueue_.empty()) {
                         auto task = std::move(pool_->taskQueue_.front());
-                        // std::cout<<"get task"<<std::endl;
                         pool_->taskQueue_.pop();
                         locker.unlock();
                         task();
                         locker.lock();
-                        // std::cout<<"end task"<<std::endl;
                     } else if (pool_->isClosed_) {
                         break;
                     } else {

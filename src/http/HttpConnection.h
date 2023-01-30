@@ -36,7 +36,7 @@ public:
     bool isKeepAlive() const;
 
     static bool isET_;
-    static const char *srcDir_;
+    static  std::string srcDir_;
     static std::atomic<int> userCount_;
 private:
     int fd_;

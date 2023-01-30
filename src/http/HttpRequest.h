@@ -1,8 +1,8 @@
 /*
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-19 00:14:39
- * @LastEditors: starrysky9959 965105951@qq.com
- * @LastEditTime: 2022-11-05 22:18:40
+ * @LastEditors: starrysky9959 starrysky9651@outlook.com
+ * @LastEditTime: 2023-01-30 18:06:40
  * @Description: 
  */
 #pragma once
@@ -13,7 +13,7 @@
 #include "../buffer/Buffer.h"
 
 enum PARSE_STATE {
-    REQUEST_LINE, 
+    REQUEST_LINE,
     HEADER,
     // BLANK_LINE,
     BODY,
@@ -38,18 +38,21 @@ public:
     std::string getVersion() const;
     bool isKeepAlive() const;
     std::unordered_map<std::string, std::string> &getHeader();
+    std::unordered_map<std::string, std::string> &getPostParameter();
 
 private:
     void parsePath();
     bool parseRequestLine(const std::string &line);
     void parseHeader(const std::string &line);
     void parseBody(const std::string &line);
+    void parseParameter();
 
     PARSE_STATE state_;
     std::string method_;
     std::string path_;
     std::string version_;
     std::unordered_map<std::string, std::string> header_;
+    std::unordered_map<std::string, std::string> postParameter_;
     std::string body_;
 
     static const std::unordered_set<std::string> DEFAULT_HTML;

@@ -37,7 +37,7 @@ public:
                         pool_->cond_.wait(locker);
                     }
                 }
-            }).detach(); // not block main thread
+            }).detach(); // don't block main thread
         }
     }
 

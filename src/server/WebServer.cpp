@@ -2,7 +2,7 @@
  * @Author: starrysky9959 965105951@qq.com
  * @Date: 2022-10-27 23:53:28
  * @LastEditors: starrysky9959 starrysky9651@outlook.com
- * @LastEditTime: 2023-01-30 22:12:16
+ * @LastEditTime: 2023-02-02 00:18:15
  * @Description:  
  */
 
@@ -30,12 +30,10 @@ WebServer::WebServer(int port, bool openSSL, int trigMode, int timeout, bool opt
     port_{port}, trigMode_{trigMode}, openSSL_{openSSL}, timeout_{timeout}, openLinger_(optLinger), isClosed_{false}, threadPool_{std::make_unique<ThreadPool>(threadNum)}, epoller_{std::make_unique<Epoller>()} {
     // get current path
 
-    srcDir_ = std::filesystem::current_path(); //getcwd(nullptr, 256);
+    srcDir_ = std::filesystem::current_path();
     LOG(INFO) << "current path: " << srcDir_;
-    // assert(srcDir_);
     srcDir_ += "/resources";
     LOG(INFO) << "resources path: " << srcDir_;
-    // strncat(srcDir_, "/resources", 16);
 
     HttpConnection::srcDir_ = srcDir_;
     HttpConnection::userCount_ = 0;
@@ -102,7 +100,7 @@ bool WebServer::initSSL(const char *cert, const char *key, const char *passwd) {
 bool WebServer::initSocket() {
     int ret;
 
-    //check whether the port is legal
+    // check whether the port is legal
     // if (port_ > 65535 || port_ < 1024) {
     //     std::cout<<"port number illegal"<<std::endl;
     //     return false;
@@ -139,9 +137,12 @@ bool WebServer::initSocket() {
 
     // bind address to this socket
     struct sockaddr_in addr;
-    addr.sin_family = AF_INET;                // address family: AF_INET menas IPv4 Internet protocol
-    addr.sin_addr.s_addr = htonl(INADDR_ANY); // 将主机无符号长整型数转换成网络字节顺序. INADDR_ANY就是指定地址0.0.0.0的地址, 这个地址事实上表示不确定地址, 或"所有地址", "任意地址". 一般来说，在各个系统中均定义成为0值.
-    addr.sin_port = htons(port_);             // 将一个无符号短整型数值转换为网络字节序, 即大端模式
+    // address family: AF_INET menas IPv4 Internet protocol
+    addr.sin_family = AF_INET;                
+    // 将主机无符号长整型数转换成网络字节顺序. INADDR_ANY就是指定地址0.0.0.0的地址, 这个地址事实上表示不确定地址, 或"所有地址", "任意地址". 一般来说，在各个系统中均定义成为0值.
+    addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    // 将一个无符号短整型数值转换为网络字节序, 即大端模式
+    addr.sin_port = htons(port_);             
     ret = bind(listenFd_, (struct sockaddr *)(&addr), sizeof(addr));
     if (ret < 0) {
         LOG(ERROR) << "Bind Port:" << port_ << " error!";
@@ -274,7 +275,7 @@ void WebServer::dealListen() {
             // bind stream socket in read/write mode
             SSL_set_fd(ssl_, fd);
 
-            // 完成SSL握手
+            // SSL handshake
             auto ret = SSL_accept(ssl_);
             if (ret != 1) {
                 LOG(ERROR) << SSL_state_string_long(ssl_);
@@ -300,7 +301,7 @@ void WebServer::sendError(int fd, const char *info) {
     assert(fd > 0);
     auto ret = send(fd, info, strlen(info), 0);
     if (ret < 0) {
-        //
+       LOG(INFO)<<"send error to client["<<fd<<"] error!";
     }
     close(fd);
 }
@@ -309,10 +310,12 @@ void WebServer::closeConnection(HttpConnection *client) {
     assert(client);
     epoller_->delFd(client->getFd());
 
-    // 关闭
+    // close
     if (openSSL_ && ssl_ != NULL) {
-        SSL_shutdown(ssl_); // 关闭SSL套接字
-        SSL_free(ssl_);     // 释放SSL套接字
+        // close SSL socket
+        SSL_shutdown(ssl_); 
+        // release SSL socket
+        SSL_free(ssl_);     
     }
     client->close();
 }

@@ -54,6 +54,4 @@ private:
     std::unordered_map<std::string, std::string> header_;
     std::unordered_map<std::string, std::string> postParameter_;
     std::string body_;
-
-    static const std::unordered_set<std::string> DEFAULT_HTML;
 };

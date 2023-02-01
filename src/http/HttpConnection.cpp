@@ -8,6 +8,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <glog/logging.h>
+
 bool HttpConnection::isET_;
 std::string HttpConnection::srcDir_;
 std::atomic<int> HttpConnection::userCount_;
@@ -67,12 +68,9 @@ ssize_t HttpConnection::read(int *saveErrno) {
         len = SSL_read(ssl_, (void *)(tempBuffer), sizeof(tempBuffer));
         if (len <= 0) {
             *saveErrno = errno;
-            int ret;
-            // LOG(ERROR) << SSL_get_error(ssl_, ret);
             return len;
         }
         readBuffer_.append(tempBuffer, len);
-        // LOG(INFO)<< "ssl read: " << tempBuffer;
         return len;
     }
 
@@ -101,9 +99,6 @@ ssize_t HttpConnection::write(int *saveErrno) {
             len = SSL_write(ssl_, iov_[0].iov_base, (int)iov_[0].iov_len);
             if (len <= 0) {
                 *saveErrno = errno;
-                // LOG(ERROR)<< "errno: " << errno;
-                int ret;
-                // LOG(ERROR) << "ssl get error: " << SSL_get_error(ssl_, ret);
                 break;
             }
             iov_[0].iov_base = static_cast<uint8_t *>(iov_[0].iov_base) + len;
@@ -115,14 +110,11 @@ ssize_t HttpConnection::write(int *saveErrno) {
             writeBuffer_.retrieveAll();
             iov_[0].iov_len = 0;
         }
-        
+
         do {
-            len = SSL_write(ssl_, iov_[1].iov_base, (int)iov_[1].iov_len);            
+            len = SSL_write(ssl_, iov_[1].iov_base, (int)iov_[1].iov_len);
             if (len <= 0) {
                 *saveErrno = errno;
-                // LOG(ERROR)<< "errno: " << errno;
-                int ret;
-                // LOG(ERROR) << "ssl get error: " << SSL_get_error(ssl_, ret);
                 break;
             }
             iov_[1].iov_base = static_cast<uint8_t *>(iov_[1].iov_base) + len;

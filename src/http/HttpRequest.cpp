@@ -6,15 +6,6 @@
 #include <string>
 #include "../util/Util.h"
 
-const std::unordered_set<std::string> HttpRequest::DEFAULT_HTML = {
-    "/index",
-    "/register",
-    "/login",
-    "/welcome",
-    "/video",
-    "/picture",
-};
-
 HttpRequest::HttpRequest() :
     state_(PARSE_STATE::REQUEST_LINE) {
 }
@@ -101,15 +92,14 @@ void HttpRequest::parsePath() {
     if (path_ == "/") {
         path_ = "/index.html";
     }
-    LOG(INFO) << "path: " << path_;
 }
 
 bool HttpRequest::parseRequestLine(const std::string &line) {
     std::regex pattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
     std::smatch subMatch;
     if (std::regex_match(line, subMatch, pattern)) {
-        // 首个sub_match是整个字符串
-        // 下个sub_match是首个有括号表达式
+        // sub_match[0]是整个字符串
+        // 之后, sub_match[i]是第i个()括号表达式内的字符串
         method_ = subMatch[1];
         path_ = subMatch[2];
         version_ = subMatch[3];
@@ -138,9 +128,7 @@ void HttpRequest::parseBody(const std::string &line) {
     LOG(INFO) << "[body]:" << body_ << ", [len]:" << body_.size();
 }
 
-
-
-int hexToDex(char ch) {
+inline int hexToDex(char ch) {
     if (ch >= 'A' && ch <= 'Z') {
         return ch - 'A' + 10;
     }

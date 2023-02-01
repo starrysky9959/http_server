@@ -59,5 +59,4 @@ private:
 
     static const std::unordered_map<std::string, std::string> SUFFIX_TYPE;
     static const std::unordered_map<int, std::string> CODE_STATUS;
-    // static const std::unordered_map<int, std::string> ERROR_PAGES;
 };

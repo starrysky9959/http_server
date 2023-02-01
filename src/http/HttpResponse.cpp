@@ -130,8 +130,7 @@ void HttpResponse::addContent(Buffer &buffer) {
         return;
     }
 
-    // file descriptor
-    // return -1 if fail
+    // file descriptor return -1 if fail
     LOG(INFO) << "file path " << (srcDir_ + path_);
     int srcFd = open((srcDir_ + path_).data(), O_RDONLY);
     if (srcFd < 0) {
